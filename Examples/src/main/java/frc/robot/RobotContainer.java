@@ -2,6 +2,7 @@ package frc.robot;
 
 import edu.wpi.first.wpilibj.XboxController;
 import frc.robot.commands.ExampleCommand;
+import frc.robot.subsystems.DriverVisionSubsystem;
 import frc.robot.subsystems.ExampleSubsystem;
 import edu.wpi.first.wpilibj2.command.Command;
 
@@ -15,6 +16,7 @@ public class RobotContainer {
   private final XboxController testController = new XboxController(Constants.TEST_CONTROLLER_PORT);
 
   private final ExampleSubsystem exampleSubsystem = new ExampleSubsystem();
+  private DriverVisionSubsystem driverVision;
 
   private final ExampleCommand autoCommand = new ExampleCommand(exampleSubsystem);
 
@@ -32,6 +34,7 @@ public class RobotContainer {
    * Create all of our robot's subsystem objects here.
    */
   private void createSubsystems() {
+    driverVision = new DriverVisionSubsystem();
   }
 
   /**
