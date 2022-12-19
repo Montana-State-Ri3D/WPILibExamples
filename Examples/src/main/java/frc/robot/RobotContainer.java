@@ -1,9 +1,11 @@
 package frc.robot;
 
 import edu.wpi.first.wpilibj.XboxController;
-import frc.robot.commands.ExampleCommand;
-import frc.robot.subsystems.ExampleSubsystem;
+import edu.wpi.first.wpilibj.XboxController.Button;
+import frc.robot.commands.SetElevatorPositionCommand;
+import frc.robot.subsystems.ElevatorSubsystem;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 
 public class RobotContainer {
 
@@ -14,9 +16,9 @@ public class RobotContainer {
   @SuppressWarnings({"unused"})
   private final XboxController testController = new XboxController(Constants.TEST_CONTROLLER_PORT);
 
-  private final ExampleSubsystem exampleSubsystem = new ExampleSubsystem();
+  private ElevatorSubsystem elevatorSubsystem;
 
-  private final ExampleCommand autoCommand = new ExampleCommand(exampleSubsystem);
+  private SetElevatorPositionCommand elevatorPosCommand;
 
   /**
    * The container for the robot. Contains subsystems, OI devices, and commands.
@@ -32,15 +34,19 @@ public class RobotContainer {
    * Create all of our robot's subsystem objects here.
    */
   private void createSubsystems() {
+    elevatorSubsystem = new ElevatorSubsystem();
   }
 
   /**
    * Create all of our robot's command objects here.
    */
   private void createCommands() {
+    elevatorPosCommand = new SetElevatorPositionCommand(elevatorSubsystem);
+
   }
 
   private void configureButtonBindings() {
+    new JoystickButton(operatorController, Button.kA.value).whenPressed(elevatorPosCommand);
   }
 
   /**
@@ -50,6 +56,6 @@ public class RobotContainer {
    */
   public Command getAutonomousCommand() {
     // An ExampleCommand will run in autonomous
-    return autoCommand;
+    return null;
   }
 }
