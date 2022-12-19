@@ -8,19 +8,34 @@ import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 import com.revrobotics.SparkMaxPIDController;
 
 import edu.wpi.first.networktables.NetworkTableEntry;
+import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
+import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.utils.MathUtils;
 
 public class ElevatorSubsystem extends SubsystemBase {
 
     private final int MOTOR_CAN_ID = 1;
+    private final int kMinPosition = 0;
+    private final int kMaxPosition = 500;
 
-    private final double KP = 0.001000;
-    private final double KI = 0.000000;
-    private final double KD = 0.000000;
+    // Initial PID coefficients
+    private final double kP = 0.001000;
+    private final double kI = 0.000000;
+    private final double kD = 0.000000;
     private final double kIz = 0;
     private final double kFF = 0;
     private final double kMaxOutput = 1;
     private final double kMinOutput = -1;
+
+    // Live PID coefficients
+    private double currentP = kP;
+    private double currentI = kI;
+    private double currentD = kD;
+    private double currentIz = kIz;
+    private double currentFF = kFF;
+    private double currentMaxOutput = kMaxOutput;
+    private double currentMinOutput = kMinOutput;
 
     private final double kMilimetersPerRevoulution = 118;
     private final double kGearRatio = 1.0 / 5.0;
@@ -29,11 +44,17 @@ public class ElevatorSubsystem extends SubsystemBase {
     private SparkMaxPIDController motorPid;
     private RelativeEncoder encoder;
 
+    private double currentPosition = 0;
     private double currentTarget = 0;
 
     // Shuffleboard constants
+    private final int kStateRow = 0;
     private final int kConstantsRow = 1;
     private final int kCurrentRow = 2;
+
+     // Network table entries for current state values
+     private NetworkTableEntry curPosEntry;
+     private NetworkTableEntry curTargetEntry;
 
     // Network table entries to display default PID coefficients for reference
     private NetworkTableEntry kPEntry;
@@ -67,26 +88,77 @@ public class ElevatorSubsystem extends SubsystemBase {
 
         motor.setSmartCurrentLimit(4);
         motorPid = motor.getPIDController();
-        motorPid.setP(KP);
-        motorPid.setI(KI);
-        motorPid.setD(KD);
+        motorPid.setP(kP);
+        motorPid.setI(kI);
+        motorPid.setD(kD);
         motorPid.setIZone(kIz);
         motorPid.setFF(kFF);
         motorPid.setOutputRange(kMinOutput, kMaxOutput);
+
+        initTelemetry();
     }
 
     @Override
     public void periodic() {
         motorPid.setReference(currentTarget, CANSparkMax.ControlType.kPosition);
+
+        updateTelemetry();
     }
 
-    public void setTarget(double inTarget) {
-        currentTarget = inTarget;
+    public void setTargetAbsolute(double inTarget) {
+        currentTarget = MathUtils.ClipToRange(inTarget, kMinPosition, kMaxPosition);
+    }
+
+    public void setTargetRelative(double inTarget) {
+        setTargetAbsolute(currentTarget + inTarget);
     }
 
     @Override
     public void simulationPeriodic() {
         // This method will be called once per scheduler run during simulation
+    }
+
+    /**
+     * Update the cached coefficients values from the network tables and write them
+     * out to the motor controller.
+     */
+    public void updatePIDCoefficients() {
+        currentP = curPEntry.getDouble(kP);
+        currentI = curIEntry.getDouble(kI);
+        currentD = curDEntry.getDouble(kD);
+        currentIz = curIzEntry.getDouble(kIz);
+        currentFF = curFFEntry.getDouble(kFF);
+        currentMaxOutput = curMaxOutputEntry.getDouble(kMaxOutput);
+        currentMinOutput = curMinOutputEntry.getDouble(kMinOutput);
+
+        updatePIDController();
+    }
+
+    /**
+     * Update the PID coefficents in the motor controller from the cached values
+     */
+    public void updatePIDController() {
+        motorPid.setP(currentP);
+        motorPid.setI(currentI);
+        motorPid.setD(currentD);
+        motorPid.setIZone(currentIz);
+        motorPid.setFF(currentFF);
+        motorPid.setOutputRange(currentMinOutput, currentMaxOutput);
+
+        updateCurrentValues();
+    }
+
+    public void dumpPIDCoefficients() {
+
+        System.out.println("--------------------------------------------------------");
+        System.out.printf("private static final double kP = %f;\n", currentP);
+        System.out.printf("private static final double kI = %f;\n", currentI);
+        System.out.printf("private static final double kD = %f;\n", currentD);
+        System.out.printf("private static final double kIz = %f;\n", currentIz);
+        System.out.printf("private static final double kFF = %f;\n", currentFF);
+        System.out.printf("private static final double kMaxOutput = %f;\n", currentMaxOutput);
+        System.out.printf("private static final double kMinOutput = %f;\n", currentMinOutput);
+        System.out.println("--------------------------------------------------------");
     }
 
     // ---------------------------------------------------------------------------
@@ -96,51 +168,14 @@ public class ElevatorSubsystem extends SubsystemBase {
     private void initTelemetry() {
         ShuffleboardTab tab = Shuffleboard.getTab("Shooter Tuner");
 
-        // Shooter data values
-        currentSpeedEntry = tab.add("Current Speed", 0)
-                .withPosition(0, kShooterRow)
+        // State value entries
+        kPEntry = tab.add("Position", 0)
+                .withPosition(0, kStateRow)
                 .withSize(1, 1)
                 .getEntry();
 
-        targetSpeedEntry = tab.add("Target Speed", 0)
-                .withPosition(1, kShooterRow)
-                .withSize(1, 1)
-                .getEntry();
-
-        shooterEncoderEntry = tab.add("Shooter Encoder", 0)
-                .withPosition(2, kShooterRow)
-                .withSize(1, 1)
-                .getEntry();
-
-        // Hood data values
-        currentAngleEntry = tab.add("Current Angle", 0)
-                .withPosition(0, kHoodRow)
-                .withSize(1, 1)
-                .getEntry();
-
-        targetAngleEntry = tab.add("Target Angle", 0)
-                .withPosition(1, kHoodRow)
-                .withSize(1, 1)
-                .getEntry();
-
-        hoodEncoderEntry = tab.add("Hood Encoder", 0)
-                .withPosition(2, kHoodRow)
-                .withSize(1, 1)
-                .getEntry();
-
-        hoodLimitSwitchEntry = tab.add("Hood Limit", false)
-                .withPosition(3, kHoodRow)
-                .withSize(1, 1)
-                .getEntry();
-
-        // Constant value entries
-        kPEntry = tab.add("kP", 0)
-                .withPosition(0, kConstantsRow)
-                .withSize(1, 1)
-                .getEntry();
-
-        kIEntry = tab.add("kI", 0)
-                .withPosition(1, kConstantsRow)
+        kIEntry = tab.add("Target", 0)
+                .withPosition(1, kStateRow)
                 .withSize(1, 1)
                 .getEntry();
 
@@ -204,27 +239,20 @@ public class ElevatorSubsystem extends SubsystemBase {
                 .withPosition(6, kCurrentRow)
                 .withSize(1, 1)
                 .getEntry();
-
     }
 
     private void updateTelemetry() {
-        currentSpeedEntry.setNumber(currentSpeed);
-        targetSpeedEntry.setNumber(targetSpeed);
-        shooterEncoderEntry.setNumber(shooterEncoder.getPosition());
-
-        currentAngleEntry.setNumber(currentAngle);
-        targetAngleEntry.setNumber(targetAngle);
-        hoodEncoderEntry.setNumber(hoodEncoder.getPosition());
-        hoodLimitSwitchEntry.forceSetBoolean(hoodLimit.get());
+        curPosEntry.setNumber(currentPosition);
+        curTargetEntry.setNumber(currentTarget);
 
         // Update the contant values in the network table even though they never change.
-        kPEntry.setDouble(kShooterP);
-        kIEntry.setDouble(kShooterI);
-        kDEntry.setDouble(kShooterD);
-        kIzEntry.setDouble(kShooterIz);
-        kFFEntry.setDouble(kShooterFF);
-        kMaxOutputEntry.setDouble(kShooterMaxOutput);
-        kMinOutputEntry.setDouble(kShooterMinOutput);
+        kPEntry.setDouble(kP);
+        kIEntry.setDouble(kI);
+        kDEntry.setDouble(kD);
+        kIzEntry.setDouble(kIz);
+        kFFEntry.setDouble(kFF);
+        kMaxOutputEntry.setDouble(kMaxOutput);
+        kMinOutputEntry.setDouble(kMinOutput);
     }
 
     private void updateCurrentValues() {
