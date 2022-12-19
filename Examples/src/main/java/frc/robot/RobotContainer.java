@@ -47,7 +47,8 @@ public class RobotContainer {
     }
 
     private void configureButtonBindings() {
-        new JoystickButton(driveController, Button.kA.value).whenPressed(elevatorPosCommand);
+        new JoystickButton(driveController, Button.kX.value).whenPressed(new InstantCommand(() -> elevatorSubsystem.setTargetAbsolute(0),elevatorSubsystem));
+        new JoystickButton(driveController, Button.kB.value).whenPressed(new InstantCommand(() -> elevatorSubsystem.setTargetAbsolute(400),elevatorSubsystem));
 
         // The A button reads the updated PID values from shuffle board and updates the
         // motor controller with them.
@@ -61,9 +62,9 @@ public class RobotContainer {
 
         // POV up and down increase and decrease the elevator target position.
         new POVButton(driveController, 0)
-                .whenPressed(new InstantCommand(() -> elevatorSubsystem.setTargetRelative(10), elevatorSubsystem));
+                .whenPressed(new InstantCommand(() -> elevatorSubsystem.setTargetRelative(25), elevatorSubsystem));
         new POVButton(driveController, 180)
-                .whenPressed(new InstantCommand(() -> elevatorSubsystem.setTargetRelative(-10), elevatorSubsystem));
+                .whenPressed(new InstantCommand(() -> elevatorSubsystem.setTargetRelative(-25), elevatorSubsystem));
     }
 
     /**
