@@ -9,26 +9,21 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class LEDSubsystem extends SubsystemBase {
 
-    boolean led0;
-    boolean led1;
-    boolean led2;
-    boolean led3;
-
     private final int ledCount = 4;
-    private int rowIndex = 0;
+    private int rowIndex;
 
     boolean[] leds = new boolean[ledCount];
 
     NetworkTableEntry[] entries = new NetworkTableEntry[ledCount];
 
-    public LEDSubsystem() {
+    public LEDSubsystem(){
+        rowIndex = 0;
         initTelemetry();
     }
 
-    public LEDSubsystem(int rowIndex)
-    {
-        this();
+    public LEDSubsystem(int rowIndex) {
         this.rowIndex = rowIndex;
+        initTelemetry();
     }
 
     @Override
@@ -48,7 +43,7 @@ public class LEDSubsystem extends SubsystemBase {
         ShuffleboardTab tab = Shuffleboard.getTab("LED");
 
         for (int n = 0; n < ledCount; n++) {
-            entries[n] = tab.add(Integer.toString(n), false)
+            entries[n] = tab.add(n + " , " + rowIndex, false)
                     .withPosition(n, rowIndex)
                     .withSize(1, 1)
                     .getEntry();
