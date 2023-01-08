@@ -1,9 +1,11 @@
 package frc.robot;
 
 import edu.wpi.first.wpilibj.XboxController;
-import frc.robot.commands.ExampleCommand;
-import frc.robot.subsystems.ExampleSubsystem;
+import edu.wpi.first.wpilibj.XboxController.Button;
+import frc.robot.subsystems.TestSolenoid;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
+import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 
 public class RobotContainer {
 
@@ -14,9 +16,7 @@ public class RobotContainer {
   @SuppressWarnings({"unused"})
   private final XboxController testController = new XboxController(Constants.TEST_CONTROLLER_PORT);
 
-  private final ExampleSubsystem exampleSubsystem = new ExampleSubsystem();
-
-  private final ExampleCommand autoCommand = new ExampleCommand(exampleSubsystem);
+  private TestSolenoid exampleSubsystem;
 
   /**
    * The container for the robot. Contains subsystems, OI devices, and commands.
@@ -32,6 +32,7 @@ public class RobotContainer {
    * Create all of our robot's subsystem objects here.
    */
   private void createSubsystems() {
+    exampleSubsystem = new TestSolenoid();
   }
 
   /**
@@ -41,6 +42,9 @@ public class RobotContainer {
   }
 
   private void configureButtonBindings() {
+    new JoystickButton(driveController, Button.kA.value).whenPressed(new InstantCommand(() -> exampleSubsystem.toggle(), exampleSubsystem));
+    new JoystickButton(driveController, Button.kB.value).whenPressed(new InstantCommand(() -> exampleSubsystem.forward(), exampleSubsystem));
+    new JoystickButton(driveController, Button.kX.value).whenPressed(new InstantCommand(() -> exampleSubsystem.retract(), exampleSubsystem));
   }
 
   /**
@@ -50,6 +54,6 @@ public class RobotContainer {
    */
   public Command getAutonomousCommand() {
     // An ExampleCommand will run in autonomous
-    return autoCommand;
+    return null;
   }
 }
